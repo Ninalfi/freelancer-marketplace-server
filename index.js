@@ -26,49 +26,50 @@ app.get('/', (req, res) => {
 async function run() {
   try{
     await client.connect();
+    console.log("Successfully connected to MongoDB!");
     
     const db = client.db("freelance_marketplace");
-    const usersCollection = db.collection("users");
+    const jobsCollection = db.collection("jobs");
 
-    app.get('/users', async(req, res) =>{
-      const cursor = usersCollection.find();
+    app.get('/jobs', async(req, res) =>{
+      const cursor = jobsCollection.find();
       const result = await cursor.toArray();
       res.send(result);
     });
 
-    app.get('/users/:id', async(req, res) =>{
+    app.get('/jobs/:id', async(req, res) =>{
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
-      const result = await usersCollection.findOne(query);
+      const result = await jobsCollection.findOne(query);
       res.send(result);
     });
 
-    app.post('/users', async (req, res) => {
-      const user = req.body;
-      const result = await usersCollection.insertOne(user);
+    app.post('/jobs', async (req, res) => {
+      const job = req.body;
+      const result = await jobsCollection.insertOne(job);
       res.send(result);
     });
 
-    app.patch('/users/:id', async (req, res) => {
+    app.patch('/jobs/:id', async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };   
-      const updatedUser = req.body;
+      const updatedJob = req.body;
       const update = {
         $set: {
-          name: updatedUser.name,
-          email: updatedUser.email,
-          skills: updatedUser.skills,
-          bio: updatedUser.bio
+          name: updatedJob.name,
+          email: updatedJob.email,
+          skills: updatedJob.skills,
+          bio: updatedJob.bio
         },
       };
-      const result = await usersCollection.updateOne(query, update);
+      const result = await jobsCollection.updateOne(query, update);
       res.send(result);
     });
 
-    app.delete('/users/:id', async (req, res) => {
+    app.delete('/jobs/:id', async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
-      const result = await usersCollection.deleteOne(query);
+      const result = await jobsCollection.deleteOne(query);
       res.send(result);
     });
 

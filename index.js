@@ -37,35 +37,42 @@ async function run() {
     
     const db = client.db("freelance_marketplace");
     const jobsCollection = db.collection("jobs");
-    const userCollection = db.collection("users");
+    //const userCollection = db.collection("users");
     const acceptedTaskCollection = db.collection("acceptedTasks");
 
-    //user collection apis
-
-    // app.get('/jobs', async(req, res) =>{
-    //   const cursor = jobsCollection.find();
-    //   const result = await cursor.toArray();
-    //   res.send(result);
-    // });
+    //User collection apis
 
      app.post('/jobs', async (req, res) => {
+      console.log("New job received:", req.body);
       const newJob = req.body;
       newJob.postedDateTime = new Date();
       const result = await jobsCollection.insertOne(newJob);
       res.send(result);
     });
-    app.get('/jobs', async (req, res) => {
-            const cursor = jobsCollection.find({});
+
+     app.get('/jobs', async (req, res) => {
+            const { search, sort, email } = req.query;
+            let query = {};
+
+            if (search) query.title = { $regex: search, $options: "i" };
+            if (email) query.postedBy = email;
+
+            let cursor = jobsCollection.find(query);
+
+            if (sort === 'desc') cursor = cursor.sort({ postedDateTime: -1 });
+            else if (sort === 'asc') cursor = cursor.sort({ postedDateTime: 1 });
+
             const jobs = await cursor.toArray();
             res.send(jobs);
         });
 
-    app.get('/jobs/:id', async(req, res) =>{
-      const id = req.params.id;
-      const query = { _id: new ObjectId(id) };
-      const result = await jobsCollection.findOne(query);
-      res.send(result);
-    });
+
+    // app.get('/jobs/:id', async(req, res) =>{
+    //   const id = req.params.id;
+    //   const query = { _id: new ObjectId(id) };
+    //   const result = await jobsCollection.findOne(query);
+    //   res.send(result);
+    // });
     app.get('/jobs/:id', async (req, res) => {
             const id = req.params.id;
             if (!ObjectId.isValid(id)) {
@@ -79,46 +86,11 @@ async function run() {
             }
             res.send(job);
         });
-    app.get('/jobs', async (req, res) => {
-            const sort = req.query.sort; // e.g., ?sort=desc
-            let sortCriteria = {};
-
-            if (sort === 'desc') {
-                sortCriteria = { postedDateTime: -1 };
-            } else if (sort === 'asc') {
-                sortCriteria = { postedDateTime: 1 };
-            }
-
-            const jobs = await jobsCollection.find().sort(sortCriteria).toArray();
-            res.send(jobs);
-        });
-
-        app.get("/jobs", async (req, res) => {
-        const { search } = req.query;
-
-        let query = {};
-        if (search) {
-          query = {
-            title: { $regex: search, $options: "i" }
-          };
-        }
-
-        const result = await jobsCollection.find(query).toArray();
-        res.send(result);
-      });
-
-
-    app.get('/latest-job', async (req, res) => {
-            const result = await jobsCollection.find()
-                .sort({ postedDateTime: -1 })
-                .limit(6)
-                .toArray();
-            res.send(result);
-        });   
-
-    app.patch('/jobs/:id', async (req, res) => {
+//update job
+       app.patch('/jobs/:id', async (req, res) => {
       const id = req.params.id;
-      const query = { _id: new ObjectId(id) };   
+      const query = { _id: new ObjectId(id) }; 
+      if (!ObjectId.isValid(id)) return res.status(400).send({ message: "Invalid Job ID format." });  
       const updatedData = req.body;
       const update = {
         $set: {
@@ -131,7 +103,7 @@ async function run() {
       const result = await jobsCollection.updateOne(query, update);
       res.send(result);
     });
-
+    //delete job
     app.delete('/jobs/:id', async (req, res) => {
       try {
                 const id = req.params.id;
@@ -142,40 +114,53 @@ async function run() {
             }
         });
 
+//latest jobs 
+    app.get('/latest-job', async (req, res) => {
+            const result = await jobsCollection.find()
+                .sort({ postedDateTime: -1 })
+                .limit(6)
+                .toArray();
+            res.send(result);
+        });   
+      // Jobs by User Email
+        app.get("/jobs/user/:email", async (req, res) => {
+      const email = req.params.email;
+      const result = await jobsCollection.find({ postedBy: email }).sort({ postedDateTime: -1 }).toArray();
+      res.send(result);
+    });
+
         
-// POST: Accept a Task (Client: JobDetails.jsx)
-        app.post('/accepted-tasks', async (req, res) => {
+// Accepted Tasks
+        app.post('/my-accepted-tasks', async (req, res) => {
             const { jobId, creatorEmail, accepterEmail } = req.body;
-            // Prevent accepting own job
             if (creatorEmail === accepterEmail) {
-                return res.status(400).send({ message: "You cannot accept your own posted task." });
+                return res.status(400).send({ message: "Ohho! You cannot accept your own posted task." });
             }
-            //Check if the task is already accepted by this user
             const existingAcceptance = await acceptedTaskCollection.findOne({ jobId, accepterEmail });
             if (existingAcceptance) {
-                 return res.status(400).send({ message: "You have already accepted this task." });
+                 return res.status(400).send({ message: " You have already accepted this task." });
             }
-
-            const result = await acceptedTaskCollection.insertOne(req.body);
+            const task = { ...req.body, acceptedAt: new Date() };
+            const result = await acceptedTaskCollection.insertOne(task);
             res.send(result);
         });
 
-        // My Accepted Tasks (Client: MyAcceptedTasks.jsx)
-        app.get('my-accepted-task/:email', async (req, res) => {
+        app.get('/my-accepted-tasks/:email', async (req, res) => {
             const email = req.params.email;
             const query = { accepterEmail: email };
             const cursor = acceptedTaskCollection.find(query);
             const tasks = await cursor.toArray();
             res.send(tasks);
         });
-        app.delete('/accepted-tasks/:id', async (req, res) => {
+        app.delete('/my-accepted-tasks/:id', async (req, res) => {
             const id = req.params.id;
+            if (!ObjectId.isValid(id)) return res.status(400).send({ message: "Invalid Task ID" });
             const query = { _id: new ObjectId(id) };
             const result = await acceptedTaskCollection.deleteOne(query);
             res.send(result);
         });
-        
 
+    
     await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
   }

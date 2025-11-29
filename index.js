@@ -48,20 +48,37 @@ async function run() {
     //   res.send(result);
     // });
 
+     app.post('/jobs', async (req, res) => {
+      const newJob = req.body;
+      newJob.postedDateTime = new Date();
+      const result = await jobsCollection.insertOne(newJob);
+      res.send(result);
+    });
+    app.get('/jobs', async (req, res) => {
+            const cursor = jobsCollection.find({});
+            const jobs = await cursor.toArray();
+            res.send(jobs);
+        });
+
     app.get('/jobs/:id', async(req, res) =>{
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const result = await jobsCollection.findOne(query);
       res.send(result);
     });
+    app.get('/jobs/:id', async (req, res) => {
+            const id = req.params.id;
+            if (!ObjectId.isValid(id)) {
+                return res.status(400).send({ message: "Invalid Job ID format." });
+            }
+            const query = { _id: new ObjectId(id) };
+            const job = await jobsCollection.findOne(query);
 
-    app.post('/jobs', async (req, res) => {
-      const job = req.body;
-      job.postedDateTime = new Date();
-      const result = await jobsCollection.insertOne(job);
-      res.send(result);
-    });
-
+            if (!job) {
+                return res.status(404).send({ message: "Job not found." });
+            }
+            res.send(job);
+        });
     app.get('/jobs', async (req, res) => {
             const sort = req.query.sort; // e.g., ?sort=desc
             let sortCriteria = {};
@@ -102,13 +119,13 @@ async function run() {
     app.patch('/jobs/:id', async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };   
-      const updatedJob = req.body;
+      const updatedData = req.body;
       const update = {
         $set: {
-          name: updatedJob.name,
-          email: updatedJob.email,
-          skills: updatedJob.skills,
-          bio: updatedJob.bio
+          title: updatedData.title,
+                    category: updatedData.category,
+                    summary: updatedData.summary,
+                    coverImage: updatedData.coverImage,
         },
       };
       const result = await jobsCollection.updateOne(query, update);
@@ -127,7 +144,7 @@ async function run() {
 
         
 // POST: Accept a Task (Client: JobDetails.jsx)
-        app.post('/tasks-accept', async (req, res) => {
+        app.post('/accepted-tasks', async (req, res) => {
             const { jobId, creatorEmail, accepterEmail } = req.body;
             // Prevent accepting own job
             if (creatorEmail === accepterEmail) {
@@ -144,11 +161,18 @@ async function run() {
         });
 
         // My Accepted Tasks (Client: MyAcceptedTasks.jsx)
-        app.get('/tasks/my-accepted/:email', async (req, res) => {
+        app.get('my-accepted-task/:email', async (req, res) => {
             const email = req.params.email;
             const query = { accepterEmail: email };
-            const tasks = await acceptedTaskCollection.find(query).toArray();
+            const cursor = acceptedTaskCollection.find(query);
+            const tasks = await cursor.toArray();
             res.send(tasks);
+        });
+        app.delete('/accepted-tasks/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const result = await acceptedTaskCollection.deleteOne(query);
+            res.send(result);
         });
         
 

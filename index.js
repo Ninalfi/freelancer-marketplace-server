@@ -126,6 +126,23 @@ async function run() {
         });
 
         
+// POST: Accept a Task (Client: JobDetails.jsx)
+        app.post('/tasks-accept', async (req, res) => {
+            const { jobId, creatorEmail, accepterEmail } = req.body;
+            // Prevent accepting own job
+            if (creatorEmail === accepterEmail) {
+                return res.status(400).send({ message: "You cannot accept your own posted task." });
+            }
+            //Check if the task is already accepted by this user
+            const existingAcceptance = await acceptedTaskCollection.findOne({ jobId, accepterEmail });
+            if (existingAcceptance) {
+                 return res.status(400).send({ message: "You have already accepted this task." });
+            }
+
+            const result = await acceptedTaskCollection.insertOne(req.body);
+            res.send(result);
+        });
+        
 
     await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");

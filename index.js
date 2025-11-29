@@ -142,6 +142,14 @@ async function run() {
             const result = await acceptedTaskCollection.insertOne(req.body);
             res.send(result);
         });
+
+        // My Accepted Tasks (Client: MyAcceptedTasks.jsx)
+        app.get('/tasks/my-accepted/:email', async (req, res) => {
+            const email = req.params.email;
+            const query = { accepterEmail: email };
+            const tasks = await acceptedTaskCollection.find(query).toArray();
+            res.send(tasks);
+        });
         
 
     await client.db("admin").command({ ping: 1 });

@@ -91,7 +91,7 @@ async function run() {
       });
 
 
-    app.get('/jobs/latest', async (req, res) => {
+    app.get('/latest-job', async (req, res) => {
             const result = await jobsCollection.find()
                 .sort({ postedDateTime: -1 })
                 .limit(6)
@@ -125,44 +125,7 @@ async function run() {
             }
         });
 
-        // POST: Accept a Task (Client: JobDetails.jsx)
-        app.post('/tasks/accept', async (req, res) => {
-            const { jobId, creatorEmail, accepterEmail } = req.body;
-
-            // Challenge 3 Check: Prevent accepting own job
-            if (creatorEmail === accepterEmail) {
-                return res.status(400).send({ message: "You cannot accept your own posted task." });
-            }
-            
-            // Optional: Check if the task is already accepted by this user
-            const existingAcceptance = await acceptedTaskCollection.findOne({ jobId, accepterEmail });
-            if (existingAcceptance) {
-                 return res.status(400).send({ message: "You have already accepted this task." });
-            }
-
-            const result = await acceptedTaskCollection.insertOne(req.body);
-            res.send(result);
-        });
-
-        // GET: My Accepted Tasks (Client: MyAcceptedTasks.jsx)
-        app.get('/tasks/my-accepted/:email', async (req, res) => {
-            const email = req.params.email;
-            const query = { accepterEmail: email };
-            const tasks = await acceptedTaskCollection.find(query).toArray();
-            res.send(tasks);
-        });
-
-        // DELETE: Complete/Cancel Task (Client: MyAcceptedTasks.jsx)
-        app.delete('/tasks/my-accepted/:id', async (req, res) => {
-            try {
-                const id = req.params.id;
-                const result = await acceptedTaskCollection.deleteOne({ _id: new ObjectId(id) });
-                res.send(result);
-            } catch (error) {
-                res.status(500).send({ message: "Failed to remove task acceptance" });
-            }
-        });
-
+        
 
     await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");

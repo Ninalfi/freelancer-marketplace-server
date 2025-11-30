@@ -5,6 +5,7 @@ const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 
 const app = express();
 const port = process.env.PORT || 3000;
+console.log(process.env)
 
 // Middleware Setup
 app.use(cors(
@@ -16,7 +17,7 @@ app.use(cors(
 app.use(express.json());
 
 // MongoDB Connection
-const uri = "mongodb+srv://Freelence_dbUser:nS76YWYBw7y0uLZR@cluster0.kpqz2hg.mongodb.net/?appName=Cluster0";
+const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.kpqz2hg.mongodb.net/?appName=Cluster0`
 
 const client = new MongoClient(uri, {
   serverApi: {
@@ -125,7 +126,7 @@ async function run() {
       // Jobs by User Email
         app.get("/jobs/user/:email", async (req, res) => {
       const email = req.params.email;
-      const result = await jobsCollection.find({ postedBy: email }).sort({ postedDateTime: -1 }).toArray();
+      const result = await jobsCollection.find({  userEmail: email  }).sort({ postedDateTime: -1 }).toArray();
       res.send(result);
     });
 

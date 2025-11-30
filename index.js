@@ -52,14 +52,14 @@ async function run() {
     });
 
      app.get('/jobs', async (req, res) => {
-            const { search, sort, email } = req.query;
+            const { search, sort, email, category } = req.query;
             let query = {};
 
             if (search) query.title = { $regex: search, $options: "i" };
             if (email) query.postedBy = email;
+            if (category) query.category = category; 
 
             let cursor = jobsCollection.find(query);
-
             if (sort === 'desc') cursor = cursor.sort({ postedDateTime: -1 });
             else if (sort === 'asc') cursor = cursor.sort({ postedDateTime: 1 });
 
@@ -75,18 +75,23 @@ async function run() {
     //   res.send(result);
     // });
     app.get('/jobs/:id', async (req, res) => {
-            const id = req.params.id;
-            if (!ObjectId.isValid(id)) {
-                return res.status(400).send({ message: "Invalid Job ID format." });
-            }
-            const query = { _id: new ObjectId(id) };
-            const job = await jobsCollection.findOne(query);
+  const id = req.params.id;
 
-            if (!job) {
-                return res.status(404).send({ message: "Job not found." });
-            }
-            res.send(job);
-        });
+  let job = null;
+
+  if (ObjectId.isValid(id)) {
+    job = await jobsCollection.findOne({ _id: new ObjectId(id) });
+  }
+  if (!job) {
+    job = await jobsCollection.findOne({ _id: id });
+  }
+  if (!job) {
+    return res.status(404).send({ message: "Job not found." });
+  }
+
+  res.send(job);
+});
+
 //update job
        app.patch('/jobs/:id', async (req, res) => {
       const id = req.params.id;
@@ -106,14 +111,18 @@ async function run() {
     });
     //delete job
     app.delete('/jobs/:id', async (req, res) => {
-      try {
-                const id = req.params.id;
-                const result = await jobsCollection.deleteOne({ _id: new ObjectId(id) });
-                res.send(result);
-            } catch (error) {
-                res.status(500).send({ message: "Failed to delete job" });
-            }
-        });
+      const id = req.params.id;
+
+  let result;
+
+  if (ObjectId.isValid(id)) {
+    result = await jobsCollection.deleteOne({ _id: new ObjectId(id) });
+  } else {
+    result = await jobsCollection.deleteOne({ _id: id });
+  }
+
+  res.send(result);
+});
 
 //latest jobs 
     app.get('/latest-job', async (req, res) => {

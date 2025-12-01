@@ -10,7 +10,9 @@ console.log(process.env)
 // Middleware Setup
 app.use(cors(
   {
-    origin: ['http://localhost:5173'], 
+    origin: [
+      'http://localhost:5173'
+    ], 
     credentials: true,
   }
 ));
@@ -170,7 +172,6 @@ async function run() {
             res.send(result);
         });
 
-    
     await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
   }
@@ -179,7 +180,8 @@ async function run() {
   }
 }
 run().catch(console.dir);
+module.exports = app;
 
-app.listen(port, () => {
-  console.log(`Server is running on port:${port}`);
-});
+// app.listen(port, () => {
+//   console.log(`Server is running on port:${port}`);
+// });

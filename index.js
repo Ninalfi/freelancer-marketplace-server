@@ -11,7 +11,8 @@ console.log(process.env)
 app.use(cors(
   {
     origin: [
-      'http://localhost:5173'
+      'http://localhost:5173',
+      'https://freelance-marketplace-87993.web.app/'
     ], 
     credentials: true,
   }
